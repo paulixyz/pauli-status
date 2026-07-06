@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pauli · status</title>
+  <meta name="description" content="Live operational status for pauli.xyz: checked from your browser and from an external monitor every 10 minutes. Hosted outside Pauli's production infrastructure." />
+  <link rel="canonical" href="https://status.pauli.xyz/" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://pauli.xyz https://raw.githubusercontent.com; base-uri 'none'; form-action 'none'" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0d14" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafbfe" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    /* Design tokens mirrored from pauli.xyz/assets/style.css (contrast-audited
+       there, WCAG AA in both schemes). Inlined so this page has zero runtime
+       dependency on the infrastructure it reports on. */
+    :root {
+      --bg: #0a0d14;
+      --bg-raised: #10141d;
+      --bg-inset: #0d1018;
+      --border: rgba(148, 163, 196, 0.16);
+      --border-strong: rgba(148, 163, 196, 0.28);
+      --text: #e7eaf2;
+      --text-muted: #97a0b5;
+      --text-faint: #788195;
+      --accent: #8b7bff;
+      --accent-strong: #a496ff;
+      --live: #3ddc97;
+      --warn: #f0b358;
+      --bad: #ef6f6f;
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --radius: 10px;
+      --maxw: 880px;
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #fafbfe;
+        --bg-raised: #ffffff;
+        --bg-inset: #f1f3f9;
+        --border: rgba(34, 44, 74, 0.14);
+        --border-strong: rgba(34, 44, 74, 0.26);
+        --text: #181d2a;
+        --text-muted: #4d5670;
+        --text-faint: #666d82;
+        --accent: #5b48e0;
+        --accent-strong: #4936c4;
+        --live: #096843;
+        --warn: #bf7911;
+        --bad: #ad2b2b;
+        color-scheme: light;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent-strong); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    h1 { font-size: clamp(1.5rem, 4.5vw, 2.1rem); font-weight: 700; letter-spacing: -0.015em; margin: 0 0 6px; }
+    h2 { font-size: 1.12rem; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 14px; }
+    .muted { color: var(--text-muted); }
+    .faint { color: var(--text-faint); }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .small { font-size: 0.875rem; }
+    .container { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 20;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 24px; max-width: var(--maxw); margin: 0 auto;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+      font-family: var(--mono); font-weight: 700; font-size: 1.05rem; color: var(--text);
+    }
+    .brand:hover { text-decoration: none; }
+    .brand .sigil {
+      display: inline-grid; place-items: center; flex: none;
+      width: 26px; height: 26px; border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent) 0%, #5e8bff 100%);
+      color: #0b0e16; font-size: 1rem; font-weight: 700;
+    }
+    .brand .page { color: var(--text-faint); font-weight: 400; }
+    .nav-links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); font-size: 0.93rem; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    main { padding: 40px 0 24px; }
+    header.status-head { margin-bottom: 26px; }
+    .kicker {
+      display: inline-block; font-family: var(--mono); font-size: 0.8rem;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-strong);
+      border: 1px solid var(--border-strong); border-radius: 999px;
+      padding: 4px 12px; margin-bottom: 16px;
+    }
+    .overall { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .lamp { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--text-faint); }
+    .lamp.ok { background: var(--live); box-shadow: 0 0 12px color-mix(in srgb, var(--live) 55%, transparent); }
+    .lamp.deg { background: var(--warn); }
+    .lamp.down { background: var(--bad); }
+    @media (prefers-reduced-motion: no-preference) {
+      .lamp.wait { animation: pulse 1.2s ease-in-out infinite alternate; }
+      @keyframes pulse { from { opacity: 0.35; } to { opacity: 1; } }
+    }
+
+    .card {
+      background: var(--bg-raised); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 22px;
+    }
+    .rows { display: flex; flex-direction: column; }
+    .row {
+      display: flex; align-items: baseline; gap: 10px 14px; flex-wrap: wrap;
+      padding: 13px 0; border-top: 1px solid var(--border);
+    }
+    .row:first-child { border-top: 0; padding-top: 4px; }
+    .row:last-child { padding-bottom: 4px; }
+    .row .name { font-weight: 600; min-width: 0; }
+    .row .target {
+      font-family: var(--mono); font-size: 0.78rem; color: var(--text-faint);
+      min-width: 0; overflow-wrap: anywhere;
+    }
+    .row .ms { margin-left: auto; font-family: var(--mono); font-size: 0.82rem; color: var(--text-muted); }
+    .pill {
+      font-family: var(--mono); font-size: 0.78rem; font-weight: 600;
+      border-radius: 999px; padding: 2px 10px; flex: none;
+      border: 1px solid var(--border-strong); color: var(--text-muted);
+    }
+    .pill.ok   { color: var(--live); border-color: color-mix(in srgb, var(--live) 45%, transparent); background: color-mix(in srgb, var(--live) 12%, transparent); }
+    .pill.deg  { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+    .pill.down { color: var(--bad);  border-color: color-mix(in srgb, var(--bad) 45%, transparent);  background: color-mix(in srgb, var(--bad) 14%, transparent); }
+    .row .note { flex-basis: 100%; font-size: 0.875rem; color: var(--text-muted); margin: 0; }
+
+    .strip-block { margin-top: 18px; }
+    .strip-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+    .strip-head .name { font-weight: 600; font-size: 0.92rem; }
+    .strip-head .pct { margin-left: auto; font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+    .strip { display: flex; gap: 1px; height: 26px; }
+    .strip .d { flex: 1 1 0; min-width: 0; border-radius: 1px; background: var(--bg-inset); border: 1px solid var(--border); }
+    .strip .d.ok   { background: var(--live); border-color: transparent; opacity: 0.82; }
+    .strip .d.deg  { background: var(--warn); border-color: transparent; }
+    .strip .d.down { background: var(--bad);  border-color: transparent; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 0.8rem; color: var(--text-faint); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+    .incident { border-top: 1px solid var(--border); padding: 14px 0; }
+    .incident:first-of-type { border-top: 0; padding-top: 2px; }
+    .incident h3 { margin: 0 0 4px; font-size: 1rem; font-weight: 600; }
+    .incident .when { font-family: var(--mono); font-size: 0.78rem; color: var(--text-faint); }
+    .incident p { margin: 6px 0 0; color: var(--text-muted); font-size: 0.92rem; }
+
+    footer {
+      border-top: 1px solid var(--border); margin-top: 28px;
+      padding: 26px 0 34px; color: var(--text-faint); font-size: 0.875rem;
+    }
+    footer .links { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--text); }
+    footer p { margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="https://pauli.xyz"><span class="sigil">σ</span>pauli<span class="page">·status</span></a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="https://pauli.xyz/docs">Docs</a>
+        <a href="https://pauli.xyz/security">Security</a>
+        <a href="https://pauli.xyz">pauli.xyz</a>
+      </nav>
+    </div>
+  </div>
+
+  <main>
+    <div class="container">
+      <header class="status-head">
+        <span class="kicker">system status</span>
+        <div class="overall">
+          <span class="lamp wait" id="overall-lamp"></span>
+          <h1 id="overall-text" aria-live="polite">Checking…</h1>
+        </div>
+        <p class="muted" id="overall-sub">
+          Checks run live from your browser against the public monitors, and from an
+          external monitor on GitHub Actions every 10 minutes. This page is hosted on
+          GitHub Pages, outside Pauli's production infrastructure, so it stays
+          reachable when pauli.xyz is not.
+        </p>
+      </header>
+
+      <noscript>
+        <div class="card">
+          <p>Live checks need JavaScript. The raw external-monitor state is at
+          <a href="https://raw.githubusercontent.com/paulixyz/pauli-status/data/current.json">current.json</a>
+          and the full receipt history is in the
+          <a href="https://github.com/paulixyz/pauli-status/commits/data">data branch</a>.</p>
+        </div>
+      </noscript>
+
+      <section class="card" aria-labelledby="live-h">
+        <h2 id="live-h">Live checks <span class="faint small mono" id="live-when"></span></h2>
+        <div class="rows" id="rows"></div>
+      </section>
+
+      <section class="card" aria-labelledby="ext-h">
+        <h2 id="ext-h">External monitor</h2>
+        <p class="small muted" id="ext-line">Loading external monitor state…</p>
+        <div id="strips"></div>
+        <div class="legend" aria-hidden="true">
+          <span><i style="background: var(--live); opacity: 0.82;"></i>operational</span>
+          <span><i style="background: var(--warn);"></i>degraded</span>
+          <span><i style="background: var(--bad);"></i>down</span>
+          <span><i style="background: var(--bg-inset); border: 1px solid var(--border);"></i>no data</span>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="inc-h">
+        <h2 id="inc-h">Incidents</h2>
+        <div id="incidents"><p class="small muted">Loading…</p></div>
+        <p class="small faint" style="margin: 12px 0 0;">
+          Probe failures also open a public
+          <a href="https://github.com/paulixyz/pauli-status/issues?q=label%3Aauto-incident">issue</a>
+          automatically; operator reports are written here.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="links">
+        <a href="https://pauli.xyz">pauli.xyz</a>
+        <a href="https://pauli.xyz/security">Security</a>
+        <a href="https://github.com/paulixyz/pauli-status">Source &amp; receipts</a>
+        <a href="mailto:hello@pauli.xyz">Contact</a>
+      </div>
+      <p>Monitors follow the published set: the website root, <span class="mono">/healthz</span>
+      (keyword-matched; a degraded instance still answers 200), and
+      <span class="mono">/public/devices</span>.</p>
+      <p>© 2026 Pauli, Inc.</p>
+    </div>
+  </footer>
+
+  <script>
+    "use strict";
+    const RAW = "https://raw.githubusercontent.com/paulixyz/pauli-status/data";
+    const MONITORS = [
+      { key: "website", name: "Website", url: "https://pauli.xyz/", desc: "static site + console" },
+      { key: "api", name: "API", url: "https://pauli.xyz/healthz", desc: "gateway liveness" },
+      { key: "devices", name: "Device registry", url: "https://pauli.xyz/public/devices", desc: "public device catalog" },
+    ];
+    const LABEL = { ok: "operational", deg: "degraded", down: "down", wait: "checking" };
+    const live = {};   // key -> {s, ms, code}
+    let external = null; // parsed current.json
+    let days = null;     // parsed days.json
+
+    const $ = (id) => document.getElementById(id);
+    const utc = (d) => d.toISOString().slice(11, 19) + " UTC";
+    const rel = (iso) => {
+      const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+      if (s < 90) return Math.round(s) + "s ago";
+      if (s < 5400) return Math.round(s / 60) + " min ago";
+      return Math.round(s / 3600) + " h ago";
+    };
+
+    function rowsInit() {
+      $("rows").innerHTML = MONITORS.map((m) => `
+        <div class="row" id="row-${m.key}">
+          <span class="name">${m.name}</span>
+          <span class="target">${m.url}</span>
+          <span class="ms" id="ms-${m.key}"></span>
+          <span class="pill wait" id="pill-${m.key}">checking</span>
+          <p class="note" id="note-${m.key}" hidden></p>
+        </div>`).join("");
+    }
+
+    async function probeOnce(m) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 8000);
+      const t0 = performance.now();
+      try {
+        const res = await fetch(m.url, { cache: "no-store", signal: ctl.signal });
+        const ms = Math.round(performance.now() - t0);
+        if (m.key === "api") {
+          if (!res.ok) return { s: "down", ms, code: res.status };
+          const body = await res.json().catch(() => null);
+          if (body && body.status === "ok") return { s: "ok", ms, code: res.status };
+          if (body && body.status === "degraded") return { s: "deg", ms, code: res.status };
+          return { s: "down", ms, code: res.status };
+        }
+        if (m.key === "devices") {
+          if (!res.ok) return { s: "down", ms, code: res.status };
+          const body = await res.json().catch(() => undefined);
+          return body === undefined ? { s: "down", ms, code: res.status } : { s: "ok", ms, code: res.status };
+        }
+        return res.ok ? { s: "ok", ms, code: res.status } : { s: "down", ms, code: res.status };
+      } catch {
+        return { s: "down", ms: null, code: null };
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function probe(m) {
+      let r = await probeOnce(m);
+      if (r.s === "down") { // one confirmation retry to ride out blips
+        await new Promise((ok) => setTimeout(ok, 1500));
+        r = await probeOnce(m);
+      }
+      live[m.key] = r;
+      const pill = $("pill-" + m.key);
+      pill.textContent = LABEL[r.s] + (r.s === "down" && r.code ? " (" + r.code + ")" : "");
+      pill.className = "pill " + r.s;
+      $("ms-" + m.key).textContent = r.ms === null ? "" : r.ms + " ms";
+      const note = $("note-" + m.key);
+      if (m.key === "api" && r.s === "deg") {
+        note.textContent = "The API is answering but reports a degraded dependency; job intake may be slower. State is safe in Postgres.";
+        note.hidden = false;
+      } else if (r.s === "down" && r.code === null) {
+        note.textContent = "No response from your browser (network error or timeout).";
+        note.hidden = false;
+      } else {
+        note.hidden = true;
+      }
+    }
+
+    function renderOverall() {
+      const states = MONITORS.map((m) => (live[m.key] || { s: "wait" }).s);
+      const lamp = $("overall-lamp"), text = $("overall-text");
+      let s, msg;
+      if (states.includes("down")) { s = "down"; msg = "Service disruption"; }
+      else if (states.includes("deg")) { s = "deg"; msg = "Degraded performance"; }
+      else if (states.includes("wait")) { s = "wait"; msg = "Checking…"; }
+      else { s = "ok"; msg = "All systems operational"; }
+      // If the browser can't reach anything but the external monitor recently
+      // saw everything up, say so rather than declaring an outage.
+      if (s === "down" && states.every((x) => x === "down") && external) {
+        const fresh = Date.now() - Date.parse(external.checked_at) < 30 * 60 * 1000;
+        const extUp = Object.values(external.monitors || {}).every((m) => m.s === "ok");
+        if (fresh && extUp) msg = "Unreachable from your browser";
+      }
+      lamp.className = "lamp " + s;
+      text.textContent = msg;
+      $("live-when").textContent = "· checked " + utc(new Date());
+    }
+
+    async function refreshLive() {
+      await Promise.all(MONITORS.map(probe));
+      renderOverall();
+    }
+
+    async function fetchJSON(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    }
+
+    function renderExternal() {
+      const line = $("ext-line");
+      if (!external) {
+        line.textContent = "External monitor state unavailable (it publishes to GitHub every 10 minutes; the first samples may still be accruing).";
+        return;
+      }
+      const stale = Date.now() - Date.parse(external.checked_at) > 30 * 60 * 1000;
+      const parts = MONITORS.map((m) => {
+        const st = (external.monitors || {})[m.key];
+        return m.name.toLowerCase() + " " + (st ? LABEL[st.s] : "no data");
+      });
+      line.textContent = "Last external check " + rel(external.checked_at) + ": " + parts.join(" · ") +
+        (stale ? ". Monitoring data is stale; recent samples are missing." : ".");
+    }
+
+    function renderStrips() {
+      const el = $("strips");
+      if (!days) { el.innerHTML = ""; return; }
+      const today = new Date();
+      const keys = [];
+      for (let i = 89; i >= 0; i--) {
+        const d = new Date(today.getTime() - i * 86400000);
+        keys.push(d.toISOString().slice(0, 10));
+      }
+      el.innerHTML = MONITORS.map((m) => {
+        const md = days[m.key] || {};
+        let ok = 0, n = 0, firstDay = null;
+        const cells = keys.map((k) => {
+          const d = md[k];
+          if (!d || !d.n) return `<span class="d" title="${k} · no data"></span>`;
+          if (!firstDay) firstDay = k;
+          ok += d.ok; n += d.n;
+          const cls = d.down > 0 ? "down" : d.deg > 0 ? "deg" : "ok";
+          const bits = [`${d.ok}/${d.n} ok`];
+          if (d.deg) bits.push(`${d.deg} degraded`);
+          if (d.down) bits.push(`${d.down} down`);
+          return `<span class="d ${cls}" title="${k} · ${bits.join(" · ")}"></span>`;
+        }).join("");
+        const pct = n ? ((100 * ok) / n).toFixed(2) + "% ok" : "no samples yet";
+        const span = firstDay ? (firstDay === keys[0] ? "90d" : "since " + firstDay) : "";
+        return `<div class="strip-block">
+          <div class="strip-head"><span class="name">${m.name}</span>
+            <span class="pct">${pct}${span ? " · " + span : ""}</span></div>
+          <div class="strip" role="img" aria-label="${m.name}: ${pct} over ${span || "the observed period"}">${cells}</div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderIncidents(doc) {
+      const el = $("incidents");
+      const list = (doc && doc.incidents) || [];
+      if (!list.length) {
+        el.innerHTML = '<p class="small muted">No incidents recorded. Monitoring began 5 July 2026.</p>';
+        return;
+      }
+      el.innerHTML = list.map((i) => `
+        <div class="incident">
+          <h3>${i.title}</h3>
+          <span class="when">${i.date}${i.status ? " · " + i.status : ""}${
+            i.affected && i.affected.length ? " · affects: " + i.affected.join(", ") : ""}</span>
+          ${i.body ? `<p>${i.body}</p>` : ""}
+          ${(i.updates || []).map((u) => `<p><span class="when">${u.t}</span>: ${u.text}</p>`).join("")}
+        </div>`).join("");
+    }
+
+    async function refreshExternal() {
+      const cb = Math.floor(Date.now() / 60000); // raw.githubusercontent caches per-URL; bust per minute
+      external = await fetchJSON(`${RAW}/current.json?cb=${cb}`).catch(() => null);
+      days = await fetchJSON(`${RAW}/days.json?cb=${cb}`).catch(() => null);
+      renderExternal();
+      renderStrips();
+      renderOverall();
+    }
+
+    rowsInit();
+    refreshLive();
+    refreshExternal();
+    fetchJSON("data/incidents.json").then(renderIncidents).catch(() =>
+      renderIncidents(null));
+    setInterval(refreshLive, 60000);
+    setInterval(refreshExternal, 300000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) { refreshLive(); refreshExternal(); }
+    });
+  </script>
+</body>
+</html>
