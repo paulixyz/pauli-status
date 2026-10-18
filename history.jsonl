@@ -1,5 +1,3 @@
-{"t":"2026-07-20T21:18:59Z","website":{"s":"ok","ms":83,"code":200},"api":{"s":"ok","ms":101,"code":200},"devices":{"s":"ok","ms":129,"code":200}}
-{"t":"2026-07-20T22:16:07Z","website":{"s":"ok","ms":146,"code":200},"api":{"s":"ok","ms":127,"code":200},"devices":{"s":"ok","ms":233,"code":200}}
 {"t":"2026-07-20T23:16:20Z","website":{"s":"ok","ms":332,"code":200},"api":{"s":"ok","ms":293,"code":200},"devices":{"s":"ok","ms":390,"code":200}}
 {"t":"2026-07-21T00:12:15Z","website":{"s":"ok","ms":309,"code":200},"api":{"s":"ok","ms":238,"code":200},"devices":{"s":"ok","ms":326,"code":200}}
 {"t":"2026-07-21T03:46:55Z","website":{"s":"ok","ms":305,"code":200},"api":{"s":"ok","ms":241,"code":200},"devices":{"s":"ok","ms":303,"code":200}}
@@ -1291,3 +1289,4 @@
 {"t":"2026-10-18T16:39:47Z","website":{"s":"ok","ms":186,"code":200},"api":{"s":"degraded","ms":169,"code":200},"devices":{"s":"ok","ms":259,"code":200}}
 {"t":"2026-10-18T18:55:09Z","website":{"s":"ok","ms":279,"code":200},"api":{"s":"degraded","ms":225,"code":200},"devices":{"s":"ok","ms":324,"code":200}}
 {"t":"2026-10-18T21:10:28Z","website":{"s":"ok","ms":59,"code":200},"api":{"s":"degraded","ms":70,"code":200},"devices":{"s":"ok","ms":178,"code":200}}
+{"t":"2026-10-18T23:14:57Z","website":{"s":"ok","ms":273,"code":200},"api":{"s":"degraded","ms":289,"code":200},"devices":{"s":"ok","ms":357,"code":200}}
