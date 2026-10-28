@@ -1,1 +1,1 @@
-{"checked_at":"2026-10-28T14:31:40Z","monitors":{"website":{"s":"ok","ms":67,"code":200},"api":{"s":"degraded","ms":84,"code":200},"devices":{"s":"ok","ms":179,"code":200}}}
+{"checked_at":"2026-10-28T19:49:37Z","monitors":{"website":{"s":"ok","ms":445,"code":200},"api":{"s":"degraded","ms":214,"code":200},"devices":{"s":"ok","ms":332,"code":200}}}
